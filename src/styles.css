@@ -174,7 +174,22 @@
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--color-workspace);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-blue);
+    outline-offset: 2px;
   }
 }
+
+@utility hero-surface {
+  background:
+    radial-gradient(760px 320px at 88% 12%, rgb(255 184 25 / 0.12), transparent 62%),
+    radial-gradient(720px 380px at 4% 100%, rgb(23 105 255 / 0.12), transparent 60%),
+    linear-gradient(120deg, #eef6ff 0%, #ffffff 72%);
+}
+
