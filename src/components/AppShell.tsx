@@ -90,7 +90,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <ul className="mt-4 space-y-1">
           {[
             { label: "Settings", icon: Settings },
-            { label: "Help &amp; Support", icon: LifeBuoy },
+            { label: "Help & Support", icon: LifeBuoy },
           ].map((item) => (
             <li key={item.label}>
               <button
@@ -98,10 +98,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 className="flex h-11 w-full items-center gap-3 rounded-xl px-3.5 text-[15px] font-medium text-white/75 transition-colors hover:bg-[rgb(23_105_255_/_0.20)] hover:text-white"
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                <span dangerouslySetInnerHTML={{ __html: item.label }} />
+                <span>{item.label}</span>
               </button>
             </li>
           ))}
+
         </ul>
 
         <button
