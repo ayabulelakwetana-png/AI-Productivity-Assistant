@@ -134,7 +134,23 @@
 
 
 .dark {
+  /* WorkEazy brand palette — dark */
+  --navy: #e8f0ff;
+  --navy-deep: #020f2b;
+  --brand-blue: #3f8bff;
+  --brand-blue-bright: #5ea3ff;
+  --gold: #ffc94d;
+  --gold-light: rgb(255 184 25 / 0.16);
+  --blue-tint: #0e2244;
+  --grey-light: #0f2144;
+  --border-grey: #1c3663;
+  --body-text: #c3d5f2;
+  --body-soft: #93aad2;
+  --nav-label: #8fa9d6;
+  --workspace: #071531;
+
   --background: oklch(0.129 0.042 264.695);
+
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
@@ -192,4 +208,18 @@
     radial-gradient(720px 380px at 4% 100%, rgb(23 105 255 / 0.12), transparent 60%),
     linear-gradient(120deg, #eef6ff 0%, #ffffff 72%);
 }
+
+/* Dark mode surface remapping for the white panels used across the app. */
+.dark .bg-white {
+  background-color: #0b1c3d;
+}
+
+.dark .hero-surface {
+  background:
+    radial-gradient(760px 320px at 88% 12%, rgb(255 184 25 / 0.1), transparent 62%),
+    radial-gradient(720px 380px at 4% 100%, rgb(23 105 255 / 0.18), transparent 60%),
+    linear-gradient(120deg, #0e2244 0%, #0b1c3d 72%);
+  border-color: #1c3663;
+}
+
 
