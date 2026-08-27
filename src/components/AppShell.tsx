@@ -244,7 +244,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               </button>
 
-              <div className="relative" ref={bellRef}>
+              <div
+                className="relative"
+                ref={bellRef}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   onClick={() => {
