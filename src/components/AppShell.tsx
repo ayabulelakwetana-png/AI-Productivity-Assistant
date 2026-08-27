@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
   ChevronRight,
@@ -8,9 +8,11 @@ import {
   Info,
   LayoutGrid,
   LifeBuoy,
+  LogOut,
   Mail,
   Menu,
   MessageSquare,
+  Moon,
   Search,
   Settings,
   Sparkles,
@@ -21,6 +23,7 @@ import {
 
 import logo from "@/assets/workeazy-logo.png";
 import { cn } from "@/lib/utils";
+import { applyTheme, getStoredTheme, setTheme, type Theme } from "@/lib/theme";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutGrid },
@@ -30,6 +33,29 @@ const navItems = [
   { to: "/research", label: "Research", icon: Search },
   { to: "/assistant", label: "AI Assistant", icon: MessageSquare },
 ] as const;
+
+const secondaryItems = [
+  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/help", label: "Help & Support", icon: LifeBuoy },
+] as const;
+
+const notifications = [
+  { id: 1, title: "Welcome to WorkEazy", body: "Start with the Smart Email Generator." },
+  { id: 2, title: "Task Planner tip", body: "Flag urgency and importance to sort your day." },
+  { id: 3, title: "Everything stays local", body: "Your drafts never leave this browser." },
+];
+
+function useOutsideClose<T extends HTMLElement>(onClose: () => void) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+  return ref;
+}
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -88,25 +114,32 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
 
         <ul className="mt-4 space-y-1">
-          {[
-            { label: "Settings", icon: Settings },
-            { label: "Help & Support", icon: LifeBuoy },
-          ].map((item) => (
-            <li key={item.label}>
-              <button
-                type="button"
-                className="flex h-11 w-full items-center gap-3 rounded-xl px-3.5 text-[15px] font-medium text-white/75 transition-colors hover:bg-[rgb(23_105_255_/_0.20)] hover:text-white"
-              >
-                <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                <span>{item.label}</span>
-              </button>
-            </li>
-          ))}
-
+          {secondaryItems.map((item) => {
+            const active = pathname === item.to;
+            return (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex h-11 w-full items-center gap-3 rounded-xl px-3.5 text-[15px] font-medium transition-colors",
+                    active
+                      ? "bg-[rgb(23_105_255_/_0.28)] text-white"
+                      : "text-white/75 hover:bg-[rgb(23_105_255_/_0.20)] hover:text-white",
+                  )}
+                >
+                  <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
-        <button
-          type="button"
+        <Link
+          to="/settings"
+          onClick={onNavigate}
           className="mt-4 grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-colors hover:bg-white/10"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-blue text-[13px] font-bold text-white">
@@ -119,7 +152,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <span className="block truncate text-[12px] text-nav-label">Premium Plan</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-nav-label" aria-hidden="true" />
-        </button>
+        </Link>
       </div>
     </div>
   );
@@ -127,6 +160,28 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setThemeValue] = useState<Theme>("light");
+  const [bellOpen, setBellOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [read, setRead] = useState(false);
+
+  const bellRef = useOutsideClose<HTMLDivElement>(() => setBellOpen(false));
+  const accountRef = useOutsideClose<HTMLDivElement>(() => setAccountOpen(false));
+
+  useEffect(() => {
+    const stored = getStoredTheme();
+    setThemeValue(stored);
+    applyTheme(stored);
+    const onTheme = (e: Event) => setThemeValue((e as CustomEvent<Theme>).detail);
+    window.addEventListener("workeazy-theme", onTheme);
+    return () => window.removeEventListener("workeazy-theme", onTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    setThemeValue(next);
+  };
 
   return (
     <div className="min-h-screen w-full bg-workspace">
@@ -157,18 +212,18 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="lg:pl-[274px]">
-        <header className="sticky top-0 z-30 border-b border-[#E5EAF2] bg-white">
+        <header className="sticky top-0 z-30 border-b border-border-grey bg-white">
           <div className="mx-auto flex h-[88px] max-w-[1250px] items-center gap-4 px-5 sm:px-7">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
-              className="shrink-0 rounded-lg p-2 text-navy transition-colors hover:bg-grey-light"
+              className="shrink-0 rounded-lg p-2 text-navy transition-colors hover:bg-grey-light lg:hidden"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            <div className="hidden min-w-0 items-center gap-2 rounded-full border border-[#D7E6FA] bg-blue-tint px-4 py-2 md:flex">
+            <div className="hidden min-w-0 items-center gap-2 rounded-full border border-border-grey bg-blue-tint px-4 py-2 md:flex">
               <Info className="h-4 w-4 shrink-0 text-brand-blue" aria-hidden="true" />
               <p className="truncate text-[14px] font-medium text-navy">
                 AI-generated content may require human review.
@@ -178,31 +233,107 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                aria-label="Toggle theme"
+                onClick={toggleTheme}
+                aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
                 className="rounded-lg p-2 text-navy transition-colors hover:bg-grey-light"
               >
-                <Sun className="h-5 w-5" aria-hidden="true" />
+                {theme === "dark" ? (
+                  <Moon className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <Sun className="h-5 w-5" aria-hidden="true" />
+                )}
               </button>
-              <button
-                type="button"
-                aria-label="Notifications: 3 unread"
-                className="relative rounded-lg p-2 text-navy transition-colors hover:bg-grey-light"
-              >
-                <Bell className="h-5 w-5" aria-hidden="true" />
-                <span className="absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-blue px-1 text-[11px] font-bold text-white">
-                  3
-                </span>
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-grey-light"
-                aria-label="Account menu for WorkEazy User"
-              >
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-navy text-[13px] font-bold text-white">
-                  WS
-                </span>
-                <ChevronDown className="h-4 w-4 text-body-soft" aria-hidden="true" />
-              </button>
+
+              <div className="relative" ref={bellRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBellOpen((o) => !o);
+                    setAccountOpen(false);
+                    setRead(true);
+                  }}
+                  aria-expanded={bellOpen}
+                  aria-label={read ? "Notifications" : "Notifications: 3 unread"}
+                  className="relative rounded-lg p-2 text-navy transition-colors hover:bg-grey-light"
+                >
+                  <Bell className="h-5 w-5" aria-hidden="true" />
+                  {!read && (
+                    <span className="absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-blue px-1 text-[11px] font-bold text-white">
+                      3
+                    </span>
+                  )}
+                </button>
+
+                {bellOpen && (
+                  <div className="absolute right-0 top-[calc(100%+10px)] w-[300px] overflow-hidden rounded-xl border border-border-grey bg-white shadow-card-hover">
+                    <p className="border-b border-border-grey px-4 py-3 text-[14px] font-bold text-navy">
+                      Notifications
+                    </p>
+                    <ul>
+                      {notifications.map((n) => (
+                        <li
+                          key={n.id}
+                          className="border-b border-border-grey px-4 py-3 last:border-b-0"
+                        >
+                          <p className="text-[14px] font-semibold text-navy">{n.title}</p>
+                          <p className="mt-0.5 text-[13px] text-body">{n.body}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative" ref={accountRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen((o) => !o);
+                    setBellOpen(false);
+                  }}
+                  aria-expanded={accountOpen}
+                  className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-grey-light"
+                  aria-label="Account menu for WorkEazy User"
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-navy text-[13px] font-bold text-white">
+                    WS
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-body-soft" aria-hidden="true" />
+                </button>
+
+                {accountOpen && (
+                  <div className="absolute right-0 top-[calc(100%+10px)] w-[240px] overflow-hidden rounded-xl border border-border-grey bg-white shadow-card-hover">
+                    <div className="border-b border-border-grey px-4 py-3">
+                      <p className="text-[14px] font-bold text-navy">WorkEazy User</p>
+                      <p className="text-[13px] text-body-soft">Premium Plan</p>
+                    </div>
+                    <ul className="p-1.5">
+                      {secondaryItems.map((item) => (
+                        <li key={item.to}>
+                          <Link
+                            to={item.to}
+                            onClick={() => setAccountOpen(false)}
+                            className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-navy hover:bg-blue-tint"
+                          >
+                            <item.icon className="h-4 w-4" aria-hidden="true" />
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => setAccountOpen(false)}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-[14px] font-semibold text-body hover:bg-grey-light"
+                        >
+                          <LogOut className="h-4 w-4" aria-hidden="true" />
+                          Sign out
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
