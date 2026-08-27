@@ -209,3 +209,17 @@
     linear-gradient(120deg, #eef6ff 0%, #ffffff 72%);
 }
 
+/* Dark mode surface remapping for the white panels used across the app. */
+.dark .bg-white {
+  background-color: #0b1c3d;
+}
+
+.dark .hero-surface {
+  background:
+    radial-gradient(760px 320px at 88% 12%, rgb(255 184 25 / 0.1), transparent 62%),
+    radial-gradient(720px 380px at 4% 100%, rgb(23 105 255 / 0.18), transparent 60%),
+    linear-gradient(120deg, #0e2244 0%, #0b1c3d 72%);
+  border-color: #1c3663;
+}
+
+
