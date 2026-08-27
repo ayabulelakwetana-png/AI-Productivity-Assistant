@@ -288,7 +288,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               </div>
 
-              <div className="relative" ref={accountRef}>
+              <div
+                className="relative"
+                ref={accountRef}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   onClick={() => {
