@@ -134,7 +134,23 @@
 
 
 .dark {
+  /* WorkEazy brand palette — dark */
+  --navy: #e8f0ff;
+  --navy-deep: #020f2b;
+  --brand-blue: #3f8bff;
+  --brand-blue-bright: #5ea3ff;
+  --gold: #ffc94d;
+  --gold-light: rgb(255 184 25 / 0.16);
+  --blue-tint: #0d2games;
+  --grey-light: #0f2144;
+  --border-grey: #1c3663;
+  --body-text: #c3d5f2;
+  --body-soft: #93aad2;
+  --nav-label: #8fa9d6;
+  --workspace: #071531;
+
   --background: oklch(0.129 0.042 264.695);
+
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
