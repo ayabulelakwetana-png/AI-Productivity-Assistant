@@ -27,7 +27,7 @@ export const Route = createFileRoute("/assistant")({
   component: Assistant,
 });
 
-type Message = { id: number; role: "user" | "assistant"; text: string };
+type Message = { id: string; role: "user" | "assistant"; text: string; greeting?: boolean };
 
 const suggestions = [
   "Draft a follow-up email to a client",
@@ -36,29 +36,68 @@ const suggestions = [
   "Outline a research brief",
 ];
 
+let msgCounter = 0;
+const newId = () => `m-${Date.now().toString(36)}-${(msgCounter += 1).toString(36)}`;
+
+const greeting: Message = {
+  id: "greeting",
+  role: "assistant",
+  greeting: true,
+  text: "Hi, I'm your WorkEazy assistant. What would you like to get done today?",
+};
+
+function normalizeMessages(input: unknown): Message[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: Message[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== "object") continue;
+    const m = raw as Partial<Message>;
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    const text = typeof m.text === "string" ? m.text : "";
+    if (!text.trim()) continue;
+    let id = typeof m.id === "string" && m.id ? m.id : newId();
+    if (seen.has(id)) id = newId();
+    seen.add(id);
+    out.push({ id, role: m.role, text, greeting: m.greeting === true });
+  }
+  return out.slice(-200);
+}
+
 function Assistant() {
   const ask = useServerFn(askAssistant);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 0,
-      role: "assistant",
-      text: "Hi, I'm your WorkEazy assistant. What would you like to get done today?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([greeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const stored = normalizeMessages(loadScoped<unknown>("assistant-chat", null));
+    if (stored.length) setMessages(stored);
+    hydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated.current) saveScoped("assistant-chat", messages);
+  }, [messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  const resetChat = () => {
+    clearScoped("assistant-chat");
+    setMessages([greeting]);
+    setError(null);
+  };
+
   const send = async (text: string) => {
     const value = text.trim();
     if (!value || loading) return;
 
-    const history = [...messages, { id: Date.now(), role: "user" as const, text: value }];
+    const history = [...messages, { id: newId(), role: "user" as const, text: value }];
     setMessages(history);
     setInput("");
     setError(null);
@@ -68,13 +107,13 @@ function Assistant() {
       const result = await ask({
         data: {
           messages: history
-            .filter((m) => m.id !== 0)
+            .filter((m) => !m.greeting)
             .slice(-16)
             .map((m) => ({ role: m.role, content: m.text })),
         },
       });
       if (result.ok) {
-        setMessages((m) => [...m, { id: Date.now() + 1, role: "assistant", text: result.text }]);
+        setMessages((m) => [...m, { id: newId(), role: "assistant", text: result.text }]);
       } else {
         setError(result.error);
       }
@@ -84,6 +123,7 @@ function Assistant() {
       setLoading(false);
     }
   };
+
 
   return (
     <div>
