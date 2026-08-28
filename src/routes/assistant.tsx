@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MessageSquare, Send } from "lucide-react";
+import { Loader2, MessageSquare, Send, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { askAssistant } from "@/lib/assistant.functions";
+import { clearScoped, loadScoped, saveScoped } from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
