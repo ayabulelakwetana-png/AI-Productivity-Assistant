@@ -133,6 +133,22 @@ function Assistant() {
         description="Ask WorkEazy to help with any workplace task. Responses are guidance only — always review before acting."
       />
 
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[14px] text-body-soft">
+          Your conversation is saved on this device and restored automatically.
+        </p>
+        <button
+          type="button"
+          onClick={resetChat}
+          className="inline-flex items-center gap-2 rounded-[10px] border border-border-grey bg-white px-3.5 py-2 text-[14px] font-semibold text-navy transition-colors hover:bg-blue-tint"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Clear chat
+        </button>
+      </div>
+
+
+
       <section className="flex h-[560px] flex-col rounded-2xl border border-border-grey bg-white shadow-card">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-6">
           {messages.map((m) => (
