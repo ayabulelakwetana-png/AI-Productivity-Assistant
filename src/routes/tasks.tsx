@@ -124,20 +124,50 @@ function TaskPlanner() {
                   {items.map((t) => (
                     <li
                       key={t.id}
-                      className="flex items-center gap-3 rounded-[10px] border border-border-grey bg-grey-light px-3.5 py-2.5"
+                      className="rounded-[10px] border border-border-grey bg-grey-light px-3.5 py-2.5"
                     >
-                      <span className="min-w-0 flex-1 text-[15px] text-navy">{t.title}</span>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${t.title}`}
-                        onClick={() => setTasks((all) => all.filter((x) => x.id !== t.id))}
-                        className="shrink-0 rounded-md p-1 text-body-soft hover:bg-white hover:text-navy"
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <span className="min-w-0 flex-1 text-[15px] text-navy">{t.title}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${t.title}`}
+                          onClick={() => setTasks((all) => all.filter((x) => x.id !== t.id))}
+                          className="shrink-0 rounded-md p-1 text-body-soft hover:bg-white hover:text-navy"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        {(
+                          [
+                            { key: "urgent", label: "Urgent" },
+                            { key: "important", label: "Important" },
+                          ] as const
+                        ).map((f) => (
+                          <label
+                            key={f.key}
+                            className="flex items-center gap-2 text-[13px] font-semibold text-body-soft"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={t[f.key]}
+                              onChange={(e) =>
+                                setTasks((all) =>
+                                  all.map((x) =>
+                                    x.id === t.id ? { ...x, [f.key]: e.target.checked } : x,
+                                  ),
+                                )
+                              }
+                              className="h-3.5 w-3.5 accent-[#1769FF]"
+                            />
+                            {f.label}
+                          </label>
+                        ))}
+                      </div>
                     </li>
                   ))}
                 </ul>
+
               </section>
             );
           })}
