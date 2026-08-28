@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ListChecks, Plus, Trash2 } from "lucide-react";
 
 import { PageHeader, Panel } from "@/components/PageHeader";
+import {
+  addTask,
+  groupTasks,
+  normalizeTasks,
+  removeTask,
+  setTaskFlag,
+  type Task,
+} from "@/lib/tasks";
+import { loadScoped, saveScoped } from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -22,8 +31,6 @@ export const Route = createFileRoute("/tasks")({
   component: TaskPlanner,
 });
 
-type Task = { id: number; title: string; urgent: boolean; important: boolean };
-
 const quadrants = [
   { key: "do", label: "Do now", hint: "Urgent + Important", accent: "bg-brand-blue" },
   { key: "schedule", label: "Schedule", hint: "Important, not urgent", accent: "bg-navy" },
@@ -31,28 +38,36 @@ const quadrants = [
   { key: "later", label: "Later", hint: "Neither", accent: "bg-body-soft" },
 ] as const;
 
-function bucket(task: Task) {
-  if (task.urgent && task.important) return "do";
-  if (task.important) return "schedule";
-  if (task.urgent) return "delegate";
-  return "later";
-}
+const seedTasks: Task[] = normalizeTasks([
+  { title: "Send client proposal", urgent: true, important: true },
+  { title: "Plan Q3 roadmap", urgent: false, important: true },
+  { title: "Reply to vendor invoice email", urgent: true, important: false },
+]);
 
 function TaskPlanner() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: "Send client proposal", urgent: true, important: true },
-    { id: 2, title: "Plan Q3 roadmap", urgent: false, important: true },
-    { id: 3, title: "Reply to vendor invoice email", urgent: true, important: false },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>(seedTasks);
   const [title, setTitle] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [important, setImportant] = useState(true);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const stored = normalizeTasks(loadScoped<unknown>("tasks", null));
+    if (stored.length) setTasks(stored);
+    hydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated.current) saveScoped("tasks", tasks);
+  }, [tasks]);
 
   const add = () => {
     if (!title.trim()) return;
-    setTasks((t) => [...t, { id: Date.now(), title: title.trim(), urgent, important }]);
+    setTasks((t) => addTask(t, title, urgent, important));
     setTitle("");
   };
+
+  const groups = groupTasks(tasks);
 
   return (
     <div>
@@ -102,11 +117,15 @@ function TaskPlanner() {
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add task
           </button>
+          <p className="mt-4 text-[13px] text-body-soft">
+            {tasks.length} task{tasks.length === 1 ? "" : "s"} tracked — every task always appears in
+            exactly one column.
+          </p>
         </Panel>
 
         <div className="grid gap-5 sm:grid-cols-2">
           {quadrants.map((q) => {
-            const items = tasks.filter((t) => bucket(t) === q.key);
+            const items = groups[q.key];
             return (
               <section
                 key={q.key}
@@ -115,11 +134,16 @@ function TaskPlanner() {
                 <div className="flex items-center gap-2.5">
                   <span className={`h-2.5 w-2.5 rounded-full ${q.accent}`} aria-hidden="true" />
                   <h2 className="text-[17px] font-bold text-navy">{q.label}</h2>
+                  <span className="ml-auto rounded-full bg-blue-tint px-2.5 py-0.5 text-[13px] font-bold text-navy">
+                    {items.length}
+                  </span>
                 </div>
                 <p className="mt-0.5 text-[13px] font-medium text-body-soft">{q.hint}</p>
                 <ul className="mt-4 space-y-2">
                   {items.length === 0 && (
-                    <li className="text-[15px] text-body-soft">Nothing here yet.</li>
+                    <li className="rounded-[10px] border border-dashed border-border-grey px-3.5 py-4 text-[15px] text-body-soft">
+                      Nothing here yet.
+                    </li>
                   )}
                   {items.map((t) => (
                     <li
@@ -131,7 +155,7 @@ function TaskPlanner() {
                         <button
                           type="button"
                           aria-label={`Remove ${t.title}`}
-                          onClick={() => setTasks((all) => all.filter((x) => x.id !== t.id))}
+                          onClick={() => setTasks((all) => removeTask(all, t.id))}
                           className="shrink-0 rounded-md p-1 text-body-soft hover:bg-white hover:text-navy"
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -151,13 +175,10 @@ function TaskPlanner() {
                             <input
                               type="checkbox"
                               checked={t[f.key]}
-                              onChange={(e) =>
-                                setTasks((all) =>
-                                  all.map((x) =>
-                                    x.id === t.id ? { ...x, [f.key]: e.target.checked } : x,
-                                  ),
-                                )
-                              }
+                              onChange={(e) => {
+                                const value = e.target.checked;
+                                setTasks((all) => setTaskFlag(all, t.id, f.key, value));
+                              }}
                               className="h-3.5 w-3.5 accent-[#1769FF]"
                             />
                             {f.label}
@@ -167,7 +188,6 @@ function TaskPlanner() {
                     </li>
                   ))}
                 </ul>
-
               </section>
             );
           })}

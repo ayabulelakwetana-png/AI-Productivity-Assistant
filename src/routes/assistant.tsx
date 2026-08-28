@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, MessageSquare, Send } from "lucide-react";
+import { Loader2, MessageSquare, Send, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { askAssistant } from "@/lib/assistant.functions";
+import { clearScoped, loadScoped, saveScoped } from "@/lib/workspace-store";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/assistant")({
   component: Assistant,
 });
 
-type Message = { id: number; role: "user" | "assistant"; text: string };
+type Message = { id: string; role: "user" | "assistant"; text: string; greeting?: boolean };
 
 const suggestions = [
   "Draft a follow-up email to a client",
@@ -35,29 +36,68 @@ const suggestions = [
   "Outline a research brief",
 ];
 
+let msgCounter = 0;
+const newId = () => `m-${Date.now().toString(36)}-${(msgCounter += 1).toString(36)}`;
+
+const greeting: Message = {
+  id: "greeting",
+  role: "assistant",
+  greeting: true,
+  text: "Hi, I'm your WorkEazy assistant. What would you like to get done today?",
+};
+
+function normalizeMessages(input: unknown): Message[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: Message[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== "object") continue;
+    const m = raw as Partial<Message>;
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    const text = typeof m.text === "string" ? m.text : "";
+    if (!text.trim()) continue;
+    let id = typeof m.id === "string" && m.id ? m.id : newId();
+    if (seen.has(id)) id = newId();
+    seen.add(id);
+    out.push({ id, role: m.role, text, greeting: m.greeting === true });
+  }
+  return out.slice(-200);
+}
+
 function Assistant() {
   const ask = useServerFn(askAssistant);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 0,
-      role: "assistant",
-      text: "Hi, I'm your WorkEazy assistant. What would you like to get done today?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([greeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    const stored = normalizeMessages(loadScoped<unknown>("assistant-chat", null));
+    if (stored.length) setMessages(stored);
+    hydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (hydrated.current) saveScoped("assistant-chat", messages);
+  }, [messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  const resetChat = () => {
+    clearScoped("assistant-chat");
+    setMessages([greeting]);
+    setError(null);
+  };
+
   const send = async (text: string) => {
     const value = text.trim();
     if (!value || loading) return;
 
-    const history = [...messages, { id: Date.now(), role: "user" as const, text: value }];
+    const history = [...messages, { id: newId(), role: "user" as const, text: value }];
     setMessages(history);
     setInput("");
     setError(null);
@@ -67,13 +107,13 @@ function Assistant() {
       const result = await ask({
         data: {
           messages: history
-            .filter((m) => m.id !== 0)
+            .filter((m) => !m.greeting)
             .slice(-16)
             .map((m) => ({ role: m.role, content: m.text })),
         },
       });
       if (result.ok) {
-        setMessages((m) => [...m, { id: Date.now() + 1, role: "assistant", text: result.text }]);
+        setMessages((m) => [...m, { id: newId(), role: "assistant", text: result.text }]);
       } else {
         setError(result.error);
       }
@@ -84,6 +124,7 @@ function Assistant() {
     }
   };
 
+
   return (
     <div>
       <PageHeader
@@ -91,6 +132,22 @@ function Assistant() {
         title="WorkEazy AI Assistant"
         description="Ask WorkEazy to help with any workplace task. Responses are guidance only — always review before acting."
       />
+
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[14px] text-body-soft">
+          Your conversation is saved on this device and restored automatically.
+        </p>
+        <button
+          type="button"
+          onClick={resetChat}
+          className="inline-flex items-center gap-2 rounded-[10px] border border-border-grey bg-white px-3.5 py-2 text-[14px] font-semibold text-navy transition-colors hover:bg-blue-tint"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Clear chat
+        </button>
+      </div>
+
+
 
       <section className="flex h-[560px] flex-col rounded-2xl border border-border-grey bg-white shadow-card">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-6">
